@@ -1,71 +1,387 @@
 import { supabase } from '@/lib/supabase'
-import { notFound } from 'next/navigation'
 
-async function getArticle(id: string) {
+async function getArticles() {
   const { data, error } = await supabase
     .from('articles')
-    .select('id, keyword, meta_title, meta_description, content, quality_score, updated_at')
-    .eq('id', id)
-    .single()
+    .select(`
+      id,
+      keyword,
+      meta_title,
+      meta_description,
+      quality_score,
+      status,
+      updated_at,
+      clients (
+        name,
+        niche,
+        domain
+      )
+    `)
+    .eq('status', 'published')
+    .order('updated_at', { ascending: false })
+    .limit(20)
 
-  if (error || !data) return null
-  return data
+  if (error) {
+    console.error('Supabase error:', error)
+    return []
+  }
+  return data || []
 }
 
-export default async function ArticlePage({ params }: { params: { id: string } }) {
-  const article = await getArticle(params.id)
-  if (!article) notFound()
+function timeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const days = Math.floor(diff / 86400000)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days} days ago`
+  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  return `${Math.floor(days / 30)}mo ago`
+}
+
+export default async function Home() {
+  const articles = await getArticles()
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px' }}>
+    <div style={s.page}>
 
-      <a href="/" style={{ fontSize: 14, color: '#8a8880', textDecoration: 'none' }}>
-        ← Back to articles
-      </a>
+      {/* ── HEADER ── */}
+      <header style={s.header}>
+        <div style={s.headerInner}>
+          <div style={s.logo}>
+            <span style={s.logoMark}>◆</span>
+            <span style={s.logoText}>SEO Blog</span>
+          </div>
+          <div style={s.headerRight}>
+            <span style={s.liveTag}>● Live</span>
+            <span style={s.articleCount}>{articles.length} articles</span>
+          </div>
+        </div>
+      </header>
 
-      <div style={{ marginTop: 32, marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: '#8a8880', fontFamily: 'monospace' }}>
-          #{article.keyword}
-        </span>
-        {article.quality_score && (
-          <span style={{
-            fontSize: 12, color: '#16a34a', background: '#f0fdf4',
-            border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: 4
-          }}>
-            ★ {article.quality_score}/100
-          </span>
-        )}
-      </div>
-
-      <h1 style={{
-        fontFamily: 'Georgia, serif', fontSize: 36, fontWeight: 600,
-        lineHeight: 1.2, color: '#1a1916', marginBottom: 16, letterSpacing: '-0.5px'
-      }}>
-        {article.meta_title || article.keyword}
-      </h1>
-
-      {article.meta_description && (
-        <p style={{
-          fontSize: 18, color: '#8a8880', lineHeight: 1.6,
-          fontStyle: 'italic', marginBottom: 32, borderBottom: '1px solid #e8e5df', paddingBottom: 32
-        }}>
-          {article.meta_description}
+      {/* ── HERO ── */}
+      <section style={s.hero}>
+        <p style={s.heroEye}>SEO Web Site</p>
+        <h1 style={s.heroTitle}>
+          Fresh articles,<br />
+          <em style={s.heroItalic}>published automatically.</em>
+        </h1>
+        <p style={s.heroDesc}>
+          Every article is researched, written, and reviewed by AI agents —
+          optimised for search engines and published on schedule.
         </p>
-      )}
+      </section>
 
-      <div
-        style={{ fontSize: 17, lineHeight: 1.8, color: '#3d3b35' }}
-        dangerouslySetInnerHTML={{ __html: article.content || '<p>Content coming soon...</p>' }}
-      />
+      <div style={s.divider} />
+
+      {/* ── ARTICLE LIST ── */}
+      <main style={s.main}>
+        {articles.length === 0 ? (
+          <div style={s.empty}>
+            <div style={s.emptyIcon}>✦</div>
+            <p style={s.emptyTitle}>Articles coming soon</p>
+            <p style={s.emptyDesc}>AI agents are writing your first articles. Check back shortly.</p>
+          </div>
+        ) : (
+          <div style={s.grid}>
+            {articles.map((article: any, i: number) => (
+              <a
+                key={article.id}
+                href={`/blog/${article.id}`}
+                style={{
+                  ...s.card,
+                  animationDelay: `${i * 0.05}s`,
+                }}
+                className="article-card"
+              >
+                {/* Card top */}
+                <div style={s.cardTop}>
+                  <div style={s.cardMeta}>
+                    {article.clients?.niche && (
+                      <span style={s.niche}>{article.clients.niche}</span>
+                    )}
+                    <span style={s.date}>{timeAgo(article.updated_at)}</span>
+                  </div>
+                  {article.quality_score >= 80 && (
+                    <span style={s.scoreBadge}>★ {article.quality_score}</span>
+                  )}
+                </div>
+
+                {/* Title */}
+                <h2 style={s.cardTitle}>
+                  {article.meta_title || article.keyword}
+                </h2>
+
+                {/* Description */}
+                {article.meta_description && (
+                  <p style={s.cardDesc}>
+                    {article.meta_description.slice(0, 120)}
+                    {article.meta_description.length > 120 ? '…' : ''}
+                  </p>
+                )}
+
+                {/* Footer */}
+                <div style={s.cardFooter}>
+                  <span style={s.keyword}>#{article.keyword}</span>
+                  <span style={s.readMore}>Read →</span>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </main>
+
+      {/* ── FOOTER ── */}
+      <footer style={s.footer}>
+        <span style={s.footerText}>Powered by AI Agents · Auto-published</span>
+      </footer>
 
       <style>{`
-        div h1 { font-size: 28px; font-weight: 600; margin: 32px 0 12px; color: #1a1916; }
-        div h2 { font-size: 22px; font-weight: 600; margin: 28px 0 10px; color: #1a1916; }
-        div h3 { font-size: 18px; font-weight: 600; margin: 20px 0 8px; color: #1a1916; }
-        div p  { margin-bottom: 18px; }
-        div ul, div ol { padding-left: 24px; margin-bottom: 18px; }
-        div li { margin-bottom: 6px; }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .article-card {
+          animation: fadeUp .5s ease both;
+          transition: box-shadow .2s ease, transform .2s ease !important;
+        }
+        .article-card:hover {
+          transform: translateY(-3px) !important;
+          box-shadow: 0 12px 40px rgba(0,0,0,.08) !important;
+        }
       `}</style>
     </div>
   )
+}
+
+// ── Styles ──────────────────────────────────────────────
+const s: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: '100vh',
+    background: '#fafaf8',
+  },
+
+  // Header
+  header: {
+    borderBottom: '1px solid #e8e5df',
+    background: '#ffffff',
+    position: 'sticky',
+    top: 0,
+    zIndex: 50,
+  },
+  headerInner: {
+    maxWidth: 1100,
+    margin: '0 auto',
+    padding: '0 32px',
+    height: 64,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  logo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoMark: {
+    fontSize: 16,
+    color: '#1a1916',
+  },
+  logoText: {
+    fontSize: 16,
+    fontWeight: 600,
+    color: '#1a1916',
+    letterSpacing: '-0.3px',
+  },
+  headerRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 16,
+  },
+  liveTag: {
+    fontSize: 12,
+    color: '#16a34a',
+    fontWeight: 500,
+  },
+  articleCount: {
+    fontSize: 12,
+    color: '#8a8880',
+    fontFamily: 'monospace',
+  },
+
+  // Hero
+  hero: {
+    maxWidth: 700,
+    margin: '0 auto',
+    padding: '80px 32px 64px',
+    textAlign: 'center',
+  },
+  heroEye: {
+    fontFamily: 'monospace',
+    fontSize: 11,
+    letterSpacing: '3px',
+    textTransform: 'uppercase',
+    color: '#8a8880',
+    marginBottom: 20,
+  },
+  heroTitle: {
+    fontFamily: "'Lora', serif",
+    fontSize: 'clamp(36px, 5vw, 58px)',
+    fontWeight: 400,
+    lineHeight: 1.1,
+    letterSpacing: '-1.5px',
+    color: '#1a1916',
+    marginBottom: 20,
+  },
+  heroItalic: {
+    fontStyle: 'italic',
+    color: '#1a1916',
+  },
+  heroDesc: {
+    fontSize: 16,
+    color: '#8a8880',
+    lineHeight: 1.7,
+    maxWidth: 480,
+    margin: '0 auto',
+  },
+
+  divider: {
+    height: 1,
+    background: '#e8e5df',
+    maxWidth: 1100,
+    margin: '0 auto 56px',
+  },
+
+  // Main
+  main: {
+    maxWidth: 1100,
+    margin: '0 auto',
+    padding: '0 32px 80px',
+  },
+
+  // Grid
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+    gap: 24,
+  },
+
+  // Card
+  card: {
+    background: '#ffffff',
+    border: '1px solid #e8e5df',
+    borderRadius: 14,
+    padding: '28px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 14,
+    cursor: 'pointer',
+    textDecoration: 'none',
+    color: 'inherit',
+  },
+
+  cardTop: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  niche: {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: '1.5px',
+    textTransform: 'uppercase',
+    color: '#8a8880',
+    background: '#f2f0ea',
+    padding: '3px 8px',
+    borderRadius: 4,
+  },
+  date: {
+    fontSize: 12,
+    color: '#8a8880',
+    fontFamily: 'monospace',
+  },
+  scoreBadge: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#16a34a',
+    background: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    padding: '2px 8px',
+    borderRadius: 4,
+    fontFamily: 'monospace',
+  },
+
+  cardTitle: {
+    fontFamily: "'Lora', serif",
+    fontSize: 20,
+    fontWeight: 600,
+    lineHeight: 1.3,
+    letterSpacing: '-0.3px',
+    color: '#1a1916',
+  },
+
+  cardDesc: {
+    fontSize: 14,
+    color: '#8a8880',
+    lineHeight: 1.65,
+    flex: 1,
+  },
+
+  cardFooter: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 14,
+    borderTop: '1px solid #f2f0ea',
+    marginTop: 4,
+  },
+  keyword: {
+    fontSize: 12,
+    color: '#8a8880',
+    fontFamily: 'monospace',
+  },
+  readMore: {
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#1a1916',
+  },
+
+  // Empty
+  empty: {
+    textAlign: 'center',
+    padding: '100px 32px',
+  },
+  emptyIcon: {
+    fontSize: 32,
+    color: '#e8e5df',
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontFamily: "'Lora', serif",
+    fontSize: 24,
+    fontWeight: 600,
+    color: '#1a1916',
+    marginBottom: 8,
+  },
+  emptyDesc: {
+    fontSize: 15,
+    color: '#8a8880',
+  },
+
+  // Footer
+  footer: {
+    borderTop: '1px solid #e8e5df',
+    padding: '24px 32px',
+    textAlign: 'center',
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#8a8880',
+    fontFamily: 'monospace',
+    letterSpacing: '0.5px',
+  },
 }
