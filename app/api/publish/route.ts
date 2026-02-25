@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const { error: updateError } = await supabase
       .from('articles')
       .update({
-        status: 'published',
+        status: 'published...',
         wp_url: articleUrl,
         wp_post_id: String(article.id),
         updated_at: new Date().toISOString(),
