@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { revalidatePath } from 'next/cache' // <--- 1. YEH IMPORT BOHT ZAROORI HAI
 
 // GET - browser se test karne ke liye
 export async function GET() {
@@ -18,6 +19,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'article_id required' }, { status: 400 })
     }
 
+    // 1. Check article exists
     const { data: article, error: fetchError } = await supabase
       .from('articles')
       .select('id, meta_title, keyword, status')
@@ -34,7 +36,9 @@ export async function POST(req: NextRequest) {
 
     const siteUrl = 'https://seo-blog-sage.vercel.app'
     const articleUrl = `${siteUrl}/blog/${article.id}`
+    console.log('calling articleUrl', articleUrl)
 
+    // 2. Update Database
     const { error: updateError } = await supabase
       .from('articles')
       .update({
@@ -49,6 +53,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
+    // ============================================================
+    // 3. CACHE CLEARING (YEH MISSING THA)
+    // ============================================================
+
+    // Is specific article ka cache clear karein taake naya data fetch ho
+    revalidatePath(`/blog/${article.id}`)
+
+    // Home page ka cache bhi clear karein taake wahan list mein article show ho
+    revalidatePath('/')
+
+    console.log(`Cache cleared for: /blog/${article.id}`)
+
     return NextResponse.json({
       success: true,
       article_id: article.id,
@@ -57,6 +73,6 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: err.message }, { status: 500 }) 
   }
 }
