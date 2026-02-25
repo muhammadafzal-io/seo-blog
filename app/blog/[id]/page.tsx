@@ -11,7 +11,6 @@ async function getArticle(id: string) {
       clients ( name, niche, domain, tone )
     `)
     .eq('id', id)
-    .eq('status', 'published')
     .single()
 
   if (error || !data) return null
@@ -73,8 +72,8 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         {/* Footer */}
         <div style={s.articleFooter}>
           <span style={s.keyword}>#{article.keyword}</span>
-          {article.clients?.[0].domain && (
-            <span style={s.domain}>{article.clients[0].domain}</span>
+          {(article.clients as any)?.domain && (
+            <span style={s.domain}>{(article.clients as any).domain}</span>
           )}
         </div>
       </article>
