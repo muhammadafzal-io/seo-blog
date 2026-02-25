@@ -1,6 +1,13 @@
 import { supabase } from '@/lib/supabase'
 
+// --- FIX START ---
+// Yeh line add karein taake home page cache na ho aur naya article foran dikhaye
+export const revalidate = 0;
+// --- FIX END ---
+
 async function getArticles() {
+  // Agar pichle step m database relationship fix nahi ki thi, 
+  // toh 'clients' wala hissa hata dein warna length 0 aayegi.
   const { data, error } = await supabase
     .from('articles')
     .select(`
@@ -53,6 +60,7 @@ export default async function Home() {
           </div>
           <div style={s.headerRight}>
             <span style={s.liveTag}>● Live</span>
+            {/* Ab yeh count hamesha updated rahega */}
             <span style={s.articleCount}>{articles.length} articles</span>
           </div>
         </div>
@@ -96,9 +104,14 @@ export default async function Home() {
                 {/* Card top */}
                 <div style={s.cardTop}>
                   <div style={s.cardMeta}>
-                    {article.clients?.niche && (
-                      <span style={s.niche}>{article.clients.niche}</span>
-                    )}
+                    {/* Safe check for clients */}
+                    {article.clients?.[0]?.niche ? (
+                      <span style={s.niche}>{article.clients[0].niche}</span>
+                    ) : (article.clients?.niche && (
+                       // Agar single object return ho raha hai (not array)
+                       <span style={s.niche}>{article.clients.niche}</span>
+                    ))}
+                    
                     <span style={s.date}>{timeAgo(article.updated_at)}</span>
                   </div>
                   {article.quality_score >= 80 && (
@@ -155,233 +168,38 @@ export default async function Home() {
 
 // ── Styles ──────────────────────────────────────────────
 const s: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: '100vh',
-    background: '#fafaf8',
-  },
-
-  // Header
-  header: {
-    borderBottom: '1px solid #e8e5df',
-    background: '#ffffff',
-    position: 'sticky',
-    top: 0,
-    zIndex: 50,
-  },
-  headerInner: {
-    maxWidth: 1100,
-    margin: '0 auto',
-    padding: '0 32px',
-    height: 64,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
-  logoMark: {
-    fontSize: 16,
-    color: '#1a1916',
-  },
-  logoText: {
-    fontSize: 16,
-    fontWeight: 600,
-    color: '#1a1916',
-    letterSpacing: '-0.3px',
-  },
-  headerRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 16,
-  },
-  liveTag: {
-    fontSize: 12,
-    color: '#16a34a',
-    fontWeight: 500,
-  },
-  articleCount: {
-    fontSize: 12,
-    color: '#8a8880',
-    fontFamily: 'monospace',
-  },
-
-  // Hero
-  hero: {
-    maxWidth: 700,
-    margin: '0 auto',
-    padding: '80px 32px 64px',
-    textAlign: 'center',
-  },
-  heroEye: {
-    fontFamily: 'monospace',
-    fontSize: 11,
-    letterSpacing: '3px',
-    textTransform: 'uppercase',
-    color: '#8a8880',
-    marginBottom: 20,
-  },
-  heroTitle: {
-    fontFamily: "'Lora', serif",
-    fontSize: 'clamp(36px, 5vw, 58px)',
-    fontWeight: 400,
-    lineHeight: 1.1,
-    letterSpacing: '-1.5px',
-    color: '#1a1916',
-    marginBottom: 20,
-  },
-  heroItalic: {
-    fontStyle: 'italic',
-    color: '#1a1916',
-  },
-  heroDesc: {
-    fontSize: 16,
-    color: '#8a8880',
-    lineHeight: 1.7,
-    maxWidth: 480,
-    margin: '0 auto',
-  },
-
-  divider: {
-    height: 1,
-    background: '#e8e5df',
-    maxWidth: 1100,
-    margin: '0 auto 56px',
-  },
-
-  // Main
-  main: {
-    maxWidth: 1100,
-    margin: '0 auto',
-    padding: '0 32px 80px',
-  },
-
-  // Grid
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-    gap: 24,
-  },
-
-  // Card
-  card: {
-    background: '#ffffff',
-    border: '1px solid #e8e5df',
-    borderRadius: 14,
-    padding: '28px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 14,
-    cursor: 'pointer',
-    textDecoration: 'none',
-    color: 'inherit',
-  },
-
-  cardTop: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  cardMeta: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
-  niche: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '1.5px',
-    textTransform: 'uppercase',
-    color: '#8a8880',
-    background: '#f2f0ea',
-    padding: '3px 8px',
-    borderRadius: 4,
-  },
-  date: {
-    fontSize: 12,
-    color: '#8a8880',
-    fontFamily: 'monospace',
-  },
-  scoreBadge: {
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#16a34a',
-    background: '#f0fdf4',
-    border: '1px solid #bbf7d0',
-    padding: '2px 8px',
-    borderRadius: 4,
-    fontFamily: 'monospace',
-  },
-
-  cardTitle: {
-    fontFamily: "'Lora', serif",
-    fontSize: 20,
-    fontWeight: 600,
-    lineHeight: 1.3,
-    letterSpacing: '-0.3px',
-    color: '#1a1916',
-  },
-
-  cardDesc: {
-    fontSize: 14,
-    color: '#8a8880',
-    lineHeight: 1.65,
-    flex: 1,
-  },
-
-  cardFooter: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 14,
-    borderTop: '1px solid #f2f0ea',
-    marginTop: 4,
-  },
-  keyword: {
-    fontSize: 12,
-    color: '#8a8880',
-    fontFamily: 'monospace',
-  },
-  readMore: {
-    fontSize: 13,
-    fontWeight: 500,
-    color: '#1a1916',
-  },
-
-  // Empty
-  empty: {
-    textAlign: 'center',
-    padding: '100px 32px',
-  },
-  emptyIcon: {
-    fontSize: 32,
-    color: '#e8e5df',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontFamily: "'Lora', serif",
-    fontSize: 24,
-    fontWeight: 600,
-    color: '#1a1916',
-    marginBottom: 8,
-  },
-  emptyDesc: {
-    fontSize: 15,
-    color: '#8a8880',
-  },
-
-  // Footer
-  footer: {
-    borderTop: '1px solid #e8e5df',
-    padding: '24px 32px',
-    textAlign: 'center',
-  },
-  footerText: {
-    fontSize: 12,
-    color: '#8a8880',
-    fontFamily: 'monospace',
-    letterSpacing: '0.5px',
-  },
+  page: { minHeight: '100vh', background: '#fafaf8' },
+  header: { borderBottom: '1px solid #e8e5df', background: '#ffffff', position: 'sticky', top: 0, zIndex: 50 },
+  headerInner: { maxWidth: 1100, margin: '0 auto', padding: '0 32px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  logo: { display: 'flex', alignItems: 'center', gap: 10 },
+  logoMark: { fontSize: 16, color: '#1a1916' },
+  logoText: { fontSize: 16, fontWeight: 600, color: '#1a1916', letterSpacing: '-0.3px' },
+  headerRight: { display: 'flex', alignItems: 'center', gap: 16 },
+  liveTag: { fontSize: 12, color: '#16a34a', fontWeight: 500 },
+  articleCount: { fontSize: 12, color: '#8a8880', fontFamily: 'monospace' },
+  hero: { maxWidth: 700, margin: '0 auto', padding: '80px 32px 64px', textAlign: 'center' },
+  heroEye: { fontFamily: 'monospace', fontSize: 11, letterSpacing: '3px', textTransform: 'uppercase', color: '#8a8880', marginBottom: 20 },
+  heroTitle: { fontFamily: "'Lora', serif", fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 400, lineHeight: 1.1, letterSpacing: '-1.5px', color: '#1a1916', marginBottom: 20 },
+  heroItalic: { fontStyle: 'italic', color: '#1a1916' },
+  heroDesc: { fontSize: 16, color: '#8a8880', lineHeight: 1.7, maxWidth: 480, margin: '0 auto' },
+  divider: { height: 1, background: '#e8e5df', maxWidth: 1100, margin: '0 auto 56px' },
+  main: { maxWidth: 1100, margin: '0 auto', padding: '0 32px 80px' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 },
+  card: { background: '#ffffff', border: '1px solid #e8e5df', borderRadius: 14, padding: '28px', display: 'flex', flexDirection: 'column', gap: 14, cursor: 'pointer', textDecoration: 'none', color: 'inherit' },
+  cardTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  cardMeta: { display: 'flex', alignItems: 'center', gap: 10 },
+  niche: { fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#8a8880', background: '#f2f0ea', padding: '3px 8px', borderRadius: 4 },
+  date: { fontSize: 12, color: '#8a8880', fontFamily: 'monospace' },
+  scoreBadge: { fontSize: 11, fontWeight: 600, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace' },
+  cardTitle: { fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 600, lineHeight: 1.3, letterSpacing: '-0.3px', color: '#1a1916' },
+  cardDesc: { fontSize: 14, color: '#8a8880', lineHeight: 1.65, flex: 1 },
+  cardFooter: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px solid #f2f0ea', marginTop: 4 },
+  keyword: { fontSize: 12, color: '#8a8880', fontFamily: 'monospace' },
+  readMore: { fontSize: 13, fontWeight: 500, color: '#1a1916' },
+  empty: { textAlign: 'center', padding: '100px 32px' },
+  emptyIcon: { fontSize: 32, color: '#e8e5df', marginBottom: 16 },
+  emptyTitle: { fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 600, color: '#1a1916', marginBottom: 8 },
+  emptyDesc: { fontSize: 15, color: '#8a8880' },
+  footer: { borderTop: '1px solid #e8e5df', padding: '24px 32px', textAlign: 'center' },
+  footerText: { fontSize: 12, color: '#8a8880', fontFamily: 'monospace', letterSpacing: '0.5px' },
 }
