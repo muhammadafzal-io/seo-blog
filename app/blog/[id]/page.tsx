@@ -1,17 +1,21 @@
 import { supabase } from "@/lib/supabase"
 import { notFound } from "next/dist/client/components/navigation"
 
-
 async function getArticle(id: string) {
+  // Masla yahan tha: Hum 'clients' maang rahe thay jo linked nahi tha.
+  // Maine filhal clients wala hissa hata diya hai taake article show ho sake.
   const { data, error } = await supabase
     .from('articles')
     .select(`
       id, keyword, meta_title, meta_description,
-      content, quality_score, status, updated_at,
-      clients ( name, niche, domain, tone )
+      content, quality_score, status, updated_at
     `)
     .eq('id', id)
     .single()
+
+  if (error) {
+    console.error("Supabase Error:", error.message) // Error logs mein dikhega
+  }
 
   if (error || !data) return null
   return data
@@ -44,10 +48,13 @@ export default async function ArticlePage({ params }: { params: { id: string } }
 
         {/* Meta top */}
         <div style={s.metaTop}>
-        {article.clients?.[0]?.niche && (
-  <span style={s.niche}>{article.clients[0].niche}</span>
-)}
+          {/* Client Niche temporary hide kiya hai kyunki data nahi aa raha */}
+          {/* {article.clients?.[0]?.niche && (
+             <span style={s.niche}>{article.clients[0].niche}</span>
+          )} */}
+
           <span style={s.date}>{date}</span>
+
           {article.quality_score >= 80 && (
             <span style={s.score}>★ {article.quality_score}/100</span>
           )}
@@ -72,9 +79,11 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         {/* Footer */}
         <div style={s.articleFooter}>
           <span style={s.keyword}>#{article.keyword}</span>
-          {(article.clients as any)?.domain && (
+
+          {/* Client Domain temporary hide kiya hai */}
+          {/* {(article.clients as any)?.domain && (
             <span style={s.domain}>{(article.clients as any).domain}</span>
-          )}
+          )} */}
         </div>
       </article>
 
@@ -95,123 +104,22 @@ export default async function ArticlePage({ params }: { params: { id: string } }
 
 const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#fafaf8' },
-
-  header: {
-    borderBottom: '1px solid #e8e5df',
-    background: '#ffffff',
-    position: 'sticky',
-    top: 0,
-    zIndex: 50,
-  },
-  headerInner: {
-    maxWidth: 780,
-    margin: '0 auto',
-    padding: '0 32px',
-    height: 64,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  back: {
-    fontSize: 14,
-    color: '#8a8880',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    transition: 'color .15s',
-  },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    fontSize: 15,
-    color: '#1a1916',
-  },
-
-  article: {
-    maxWidth: 720,
-    margin: '0 auto',
-    padding: '56px 32px 100px',
-  },
-
-  metaTop: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 20,
-    flexWrap: 'wrap',
-  },
-  niche: {
-    fontSize: 11,
-    fontWeight: 600,
-    letterSpacing: '2px',
-    textTransform: 'uppercase',
-    color: '#8a8880',
-    background: '#f2f0ea',
-    padding: '3px 9px',
-    borderRadius: 4,
-  },
-  date: {
-    fontSize: 13,
-    color: '#8a8880',
-    fontFamily: 'monospace',
-  },
-  score: {
-    fontSize: 12,
-    color: '#16a34a',
-    background: '#f0fdf4',
-    border: '1px solid #bbf7d0',
-    padding: '2px 8px',
-    borderRadius: 4,
-    fontFamily: 'monospace',
-  },
-
-  title: {
-    fontFamily: "'Lora', serif",
-    fontSize: 'clamp(28px, 4vw, 44px)',
-    fontWeight: 600,
-    lineHeight: 1.15,
-    letterSpacing: '-1px',
-    color: '#1a1916',
-    marginBottom: 16,
-  },
-
-  desc: {
-    fontSize: 18,
-    color: '#8a8880',
-    lineHeight: 1.65,
-    fontStyle: 'italic',
-    marginBottom: 0,
-  },
-
-  divider: {
-    height: 1,
-    background: '#e8e5df',
-    margin: '32px 0',
-  },
-
-  content: {
-    fontSize: 17,
-    lineHeight: 1.8,
-    color: '#3d3b35',
-  },
-
-  articleFooter: {
-    marginTop: 56,
-    paddingTop: 24,
-    borderTop: '1px solid #e8e5df',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  keyword: {
-    fontSize: 13,
-    color: '#8a8880',
-    fontFamily: 'monospace',
-  },
-  domain: {
-    fontSize: 13,
-    color: '#8a8880',
-    fontFamily: 'monospace',
-  },
+  header: { borderBottom: '1px solid #e8e5df', background: '#ffffff', position: 'sticky', top: 0, zIndex: 50 },
+  headerInner: { maxWidth: 780, margin: '0 auto', padding: '0 32px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  back: { fontSize: 14, color: '#8a8880', display: 'flex', alignItems: 'center', gap: 6, transition: 'color .15s' },
+  logo: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, color: '#1a1916' },
+  article: { maxWidth: 720, margin: '0 auto', padding: '56px 32px 100px' },
+  metaTop: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' },
+  niche: { fontSize: 11, fontWeight: 600, letterSpacing: '2px', textTransform: 'uppercase', color: '#8a8880', background: '#f2f0ea', padding: '3px 9px', borderRadius: 4 },
+  date: { fontSize: 13, color: '#8a8880', fontFamily: 'monospace' },
+  score: { fontSize: 12, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '2px 8px', borderRadius: 4, fontFamily: 'monospace' },
+  title: { fontFamily: "'Lora', serif", fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 600, lineHeight: 1.15, letterSpacing: '-1px', color: '#1a1916', marginBottom: 16 },
+  desc: { fontSize: 18, color: '#8a8880', lineHeight: 1.65, fontStyle: 'italic', marginBottom: 0 },
+  divider: { height: 1, background: '#e8e5df', margin: '32px 0' },
+  content: { fontSize: 17, lineHeight: 1.8, color: '#3d3b35' },
+  articleFooter: { marginTop: 56, paddingTop: 24, borderTop: '1px solid #e8e5df', display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
+  keyword: { fontSize: 13, color: '#8a8880', fontFamily: 'monospace' },
+  domain: { fontSize: 13, color: '#8a8880', fontFamily: 'monospace' },
 }
+
+
