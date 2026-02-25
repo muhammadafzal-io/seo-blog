@@ -1,1 +1,44 @@
+# dependencies
 node_modules/
+
+# next.js build output
+.next/
+out/
+dist/
+build/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env files (IMPORTANT)
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# system files
+.DS_Store
+Thumbs.db
+
+# editor folders
+.vscode/
+.idea/
+
+# cache
+.cache/
+.tmp/
+temp/
+
+# typescript
+*.tsbuildinfo
+
+# coverage / test
+coverage/
+
+# n8n export files (optional)
+*.n8n.json
