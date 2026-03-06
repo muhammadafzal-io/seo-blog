@@ -10,69 +10,69 @@ export async function GET() {
   })
 }
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json()
-    const { article_id } = body
+// export async function POST(req: NextRequest) {
+//   try {
+//     const body = await req.json()
+//     const { article_id } = body
 
-    if (!article_id) {
-      return NextResponse.json({ error: 'article_id required' }, { status: 400 })
-    }
+//     if (!article_id) {
+//       return NextResponse.json({ error: 'article_id required' }, { status: 400 })
+//     }
 
-    // 1. Check article exists
-    const { data: article, error: fetchError } = await supabase
-      .from('articles')
-      .select('id, meta_title, keyword, status')
-      .eq('id', article_id)
-      .single()
+//     // 1. Check article exists
+//     const { data: article, error: fetchError } = await supabase
+//       .from('articles')
+//       .select('id, meta_title, keyword, status')
+//       .eq('id', article_id)
+//       .single()
 
-    if (fetchError || !article) {
-      return NextResponse.json({
-        error: 'Article not found',
-        details: fetchError?.message,
-        article_id,
-      }, { status: 404 })
-    }
+//     if (fetchError || !article) {
+//       return NextResponse.json({
+//         error: 'Article not found',
+//         details: fetchError?.message,
+//         article_id,
+//       }, { status: 404 })
+//     }
 
-    const siteUrl = 'https://seo-blog-sage.vercel.app'
-    const articleUrl = `${siteUrl}/blog/${article.id}`
-    console.log('calling articleUrl', articleUrl)
+//     const siteUrl = 'https://seo-blog-sage.vercel.app'
+//     const articleUrl = `${siteUrl}/blog/${article.id}`
+//     console.log('calling articleUrl', articleUrl)
 
-    // 2. Update Database
-    const { error: updateError } = await supabase
-      .from('articles')
-      .update({
-        status: 'published',
-        wp_url: articleUrl,
-        wp_post_id: String(article.id),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', article_id)
+//     // 2. Update Database
+//     const { error: updateError } = await supabase
+//       .from('articles')
+//       .update({
+//         status: 'published',
+//         wp_url: articleUrl,
+//         wp_post_id: String(article.id),
+//         updated_at: new Date().toISOString(),
+//       })
+//       .eq('id', article_id)
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 })
-    }
+//     if (updateError) {
+//       return NextResponse.json({ error: updateError.message }, { status: 500 })
+//     }
 
-    // ============================================================
-    // 3. CACHE CLEARING (YEH MISSING THA)
-    // ============================================================
+//     // ============================================================
+//     // 3. CACHE CLEARING (YEH MISSING THA)
+//     // ============================================================
 
-    // Is specific article ka cache clear karein taake naya data fetch ho
-    revalidatePath(`/blog/${article.id}`)
+//     // Is specific article ka cache clear karein taake naya data fetch ho
+//     revalidatePath(`/blog/${article.id}`)
 
-    // Home page ka cache bhi clear karein taake wahan list mein article show ho
-    revalidatePath('/')
+//     // Home page ka cache bhi clear karein taake wahan list mein article show ho
+//     revalidatePath('/')
 
-    console.log(`Cache cleared for: /blog/${article.id}`)
+//     console.log(`Cache cleared for: /blog/${article.id}`)
 
-    return NextResponse.json({
-      success: true,
-      article_id: article.id,
-      url: articleUrl,
-      title: article.meta_title || article.keyword,
-    })
+//     return NextResponse.json({
+//       success: true,
+//       article_id: article.id,
+//       url: articleUrl,
+//       title: article.meta_title || article.keyword,
+//     })
 
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 }) 
-  }
-}
+//   } catch (err: any) {
+//     return NextResponse.json({ error: err.message }, { status: 500 })
+//   }
+// }
