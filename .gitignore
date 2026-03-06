@@ -3,6 +3,7 @@ node_modules/
 
 # next.js build output
 .next/
+.next/cache/
 out/
 dist/
 build/
@@ -14,7 +15,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# env files (IMPORTANT)
+# env files
 .env
 .env.local
 .env.development
@@ -29,7 +30,7 @@ Thumbs.db
 .vscode/
 .idea/
 
-# cache
+# cache/temp
 .cache/
 .tmp/
 temp/
@@ -37,8 +38,8 @@ temp/
 # typescript
 *.tsbuildinfo
 
-# coverage / test
+# coverage
 coverage/
 
-# n8n export files (optional)
+# optional exports
 *.n8n.json
