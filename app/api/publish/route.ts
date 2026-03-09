@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { revalidatePath } from 'next/cache' // <--- 1. YEH IMPORT BOHT ZAROORI HAI
+import { revalidatePath } from 'next/cache'
 
 // GET - browser se test karne ke liye
 export async function GET() {
@@ -10,69 +10,68 @@ export async function GET() {
   })
 }
 
-// export async function POST(req: NextRequest) {
-//   try {
-//     const body = await req.json()
-//     const { article_id } = body
+export async function POST(req: NextRequest) {
+  try {
+    // ── 1. Auth check ─────────────────────────────────────────
+    const secret = req.headers.get('x-api-key') || req.headers.get('authorization')
+    if (process.env.PUBLISH_SECRET && secret !== process.env.PUBLISH_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
 
-//     if (!article_id) {
-//       return NextResponse.json({ error: 'article_id required' }, { status: 400 })
-//     }
+    // ── 2. Parse body ─────────────────────────────────────────
+    const body = await req.json()
+    const { article_id } = body
 
-//     // 1. Check article exists
-//     const { data: article, error: fetchError } = await supabase
-//       .from('articles')
-//       .select('id, meta_title, keyword, status')
-//       .eq('id', article_id)
-//       .single()
+    if (!article_id) {
+      return NextResponse.json({ error: 'article_id required' }, { status: 400 })
+    }
 
-//     if (fetchError || !article) {
-//       return NextResponse.json({
-//         error: 'Article not found',
-//         details: fetchError?.message,
-//         article_id,
-//       }, { status: 404 })
-//     }
+    // ── 3. Check article exists ───────────────────────────────
+    const { data: article, error: fetchError } = await supabase
+      .from('articles')
+      .select('id, meta_title, keyword, status')
+      .eq('id', article_id)
+      .single()
 
-//     const siteUrl = 'https://seo-blog-sage.vercel.app'
-//     const articleUrl = `${siteUrl}/blog/${article.id}`
-//     console.log('calling articleUrl', articleUrl)
+    if (fetchError || !article) {
+      return NextResponse.json({
+        error: 'Article not found',
+        details: fetchError?.message,
+        article_id,
+      }, { status: 404 })
+    }
 
-//     // 2. Update Database
-//     const { error: updateError } = await supabase
-//       .from('articles')
-//       .update({
-//         status: 'published',
-//         wp_url: articleUrl,
-//         wp_post_id: String(article.id),
-//         updated_at: new Date().toISOString(),
-//       })
-//       .eq('id', article_id)
+    const siteUrl = 'https://seo-blog-sage.vercel.app'
+    const articleUrl = `${siteUrl}/blog/${article.id}`
 
-//     if (updateError) {
-//       return NextResponse.json({ error: updateError.message }, { status: 500 })
-//     }
+    // ── 4. Update database ────────────────────────────────────
+    const { error: updateError } = await supabase
+      .from('articles')
+      .update({
+        status: 'published',
+        wp_url: articleUrl,
+        wp_post_id: String(article.id),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', article_id)
 
-//     // ============================================================
-//     // 3. CACHE CLEARING (YEH MISSING THA)
-//     // ============================================================
+    if (updateError) {
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
 
-//     // Is specific article ka cache clear karein taake naya data fetch ho
-//     revalidatePath(`/blog/${article.id}`)
+    // ── 5. Clear cache so page shows immediately ──────────────
+    revalidatePath(`/blog/${article.id}`)
+    revalidatePath('/')
 
-//     // Home page ka cache bhi clear karein taake wahan list mein article show ho
-//     revalidatePath('/')
+    // ── 6. Return success ─────────────────────────────────────
+    return NextResponse.json({
+      success: true,
+      article_id: article.id,
+      url: articleUrl,
+      title: article.meta_title || article.keyword,
+    })
 
-//     console.log(`Cache cleared for: /blog/${article.id}`)
-
-//     return NextResponse.json({
-//       success: true,
-//       article_id: article.id,
-//       url: articleUrl,
-//       title: article.meta_title || article.keyword,
-//     })
-
-//   } catch (err: any) {
-//     return NextResponse.json({ error: err.message }, { status: 500 })
-//   }
-// }
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
