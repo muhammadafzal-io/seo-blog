@@ -2,7 +2,6 @@ import { supabase } from '@/lib/supabase'
 
 export const revalidate = 0
 
-// Show these statuses — covers all articles that have content
 const VISIBLE_STATUSES = ['written', 'need_revision', 'approved', 'published']
 
 async function getArticles() {
@@ -18,6 +17,7 @@ async function getArticles() {
       wp_url,
       updated_at,
       client_id,
+      featured_image_url,
       clients (
         name,
         niche,
@@ -25,7 +25,7 @@ async function getArticles() {
       )
     `)
     .in('status', VISIBLE_STATUSES)
-    .not('content', 'is', null)        
+    .not('content', 'is', null)
     .order('updated_at', { ascending: false })
     .limit(20)
 
@@ -46,7 +46,6 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(days / 30)}mo ago`
 }
 
-// Status badge config
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   published: { label: 'Published', color: '#16a34a', bg: '#f0fdf4' },
   approved: { label: 'Approved', color: '#2563eb', bg: '#eff6ff' },
@@ -54,7 +53,6 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
   need_revision: { label: 'Revising', color: '#9333ea', bg: '#faf5ff' },
 }
 
-// Get client niche safely — Supabase can return object or array
 function getClient(article: any) {
   if (!article.clients) return null
   if (Array.isArray(article.clients)) return article.clients[0] || null
@@ -93,8 +91,6 @@ export default async function Home() {
           Every article is researched, written, and reviewed by AI agents —
           optimised for search engines and published on schedule.
         </p>
-
-        {/* Stats row */}
         <div style={s.statsRow}>
           {[
             { num: articles.length, label: 'Total Articles' },
@@ -118,56 +114,81 @@ export default async function Home() {
         ) : (
           <div style={s.grid}>
               {articles.map((article: any, i: number) => {
-                const client = getClient(article)
-                const statusCfg = STATUS_CONFIG[article.status] || STATUS_CONFIG.written
-                const href = article.wp_url || `/blog/${article.id}`
+              const client = getClient(article)
+              const statusCfg = STATUS_CONFIG[article.status] || STATUS_CONFIG.written
+              const href = article.wp_url || `/blog/${article.id}`
+              const hasImage = !!article.featured_image_url
 
-                return (
-                  <a
-                    key={article.id}
+              return (
+                <a
+                  key={article.id}
                   href={href}
                   target={article.wp_url ? '_blank' : '_self'}
                   rel={article.wp_url ? 'noopener noreferrer' : undefined}
                   style={{ ...s.card, animationDelay: `${i * 0.05}s` }}
                   className="article-card"
                 >
-                  {/* Card top */}
-                  <div style={s.cardTop}>
+                  {/* ── Featured Image Thumbnail ── */}
+                  {hasImage ? (
+                    <div style={s.cardThumb}>
+                      <img
+                        src={article.featured_image_url}
+                        alt={article.meta_title || article.keyword}
+                        style={s.cardThumbImg}
+                      />
+                      {/* Status badge over image */}
+                      <span style={{
+                        ...s.thumbBadge,
+                        color: statusCfg.color,
+                        background: statusCfg.bg,
+                      }}>
+                        {statusCfg.label}
+                      </span>
+                    </div>
+                  ) : (
+                    /* Placeholder when no image */
+                    <div style={s.cardThumbPlaceholder}>
+                      <span style={s.placeholderIcon}>✦</span>
+                      <span style={{
+                          ...s.thumbBadge,
+                          color: statusCfg.color,
+                          background: statusCfg.bg,
+                        }}>
+                          {statusCfg.label}
+                        </span>
+                      </div>
+                  )}
+
+                  {/* Card body */}
+                  <div style={s.cardBody}>
+                    {/* Meta row */}
                     <div style={s.cardMeta}>
                       {client?.niche && (
                         <span style={s.niche}>{client.niche}</span>
                       )}
                       <span style={s.date}>{timeAgo(article.updated_at)}</span>
                     </div>
-                    {/* Status badge */}
-                    <span style={{
-                      ...s.statusBadge,
-                      color: statusCfg.color,
-                      background: statusCfg.bg,
-                    }}>
-                      {statusCfg.label}
-                    </span>
-                  </div>
 
-                  {/* Title */}
-                  <h2 style={s.cardTitle}>
-                    {article.meta_title || article.keyword}
-                  </h2>
+                    {/* Title */}
+                    <h2 style={s.cardTitle}>
+                      {article.meta_title || article.keyword}
+                    </h2>
 
-                  {/* Description */}
-                  {article.meta_description && (
-                    <p style={s.cardDesc}>
-                      {article.meta_description.slice(0, 120)}
-                      {article.meta_description.length > 120 ? '…' : ''}
-                    </p>
-                  )}
+                    {/* Description */}
+                    {article.meta_description && (
+                      <p style={s.cardDesc}>
+                        {article.meta_description.slice(0, 110)}
+                        {article.meta_description.length > 110 ? '…' : ''}
+                      </p>
+                    )}
 
-                  {/* Footer */}
-                  <div style={s.cardFooter}>
-                    <span style={s.keyword}>#{article.keyword}</span>
-                    <span style={s.readMore}>
-                      {article.status === 'published' ? 'Read →' : 'Preview →'}
-                    </span>
+                    {/* Footer */}
+                    <div style={s.cardFooter}>
+                      <span style={s.keyword}>#{article.keyword}</span>
+                      <span style={s.readMore}>
+                        {article.status === 'published' ? 'Read →' : 'Preview →'}
+                      </span>
+                    </div>
                   </div>
                 </a>
               )
@@ -193,7 +214,10 @@ export default async function Home() {
         }
         .article-card:hover {
           transform: translateY(-3px) !important;
-          box-shadow: 0 12px 40px rgba(0,0,0,.08) !important;
+          box-shadow: 0 16px 48px rgba(0,0,0,.10) !important;
+        }
+        .article-card:hover img {
+          transform: scale(1.04);
         }
       `}</style>
     </div>
@@ -217,7 +241,6 @@ function EmptyState() {
   )
 }
 
-// ── Styles ────────────────────────────────────────────────────
 const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#fafaf8', fontFamily: "'DM Sans', sans-serif" },
   header: { borderBottom: '1px solid #e8e5df', background: '#ffffff', position: 'sticky', top: 0, zIndex: 50 },
@@ -234,7 +257,6 @@ const s: Record<string, React.CSSProperties> = {
   heroTitle: { fontFamily: "'Lora', serif", fontSize: 'clamp(36px, 5vw, 58px)', fontWeight: 400, lineHeight: 1.1, letterSpacing: '-1.5px', color: '#1a1916', marginBottom: 20 },
   heroItalic: { fontStyle: 'italic', color: '#1a1916' },
   heroDesc: { fontSize: 16, color: '#8a8880', lineHeight: 1.7, maxWidth: 480, margin: '0 auto 36px' },
-
   statsRow: { display: 'flex', justifyContent: 'center', gap: 40, marginTop: 8 },
   stat: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
   statNum: { fontFamily: "'Lora', serif", fontSize: 32, fontWeight: 600, color: '#1a1916', lineHeight: 1 },
@@ -242,16 +264,25 @@ const s: Record<string, React.CSSProperties> = {
 
   divider: { height: 1, background: '#e8e5df', maxWidth: 1100, margin: '0 auto 56px' },
   main: { maxWidth: 1100, margin: '0 auto', padding: '0 32px 80px' },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 24 },
-  card: { background: '#ffffff', border: '1px solid #e8e5df', borderRadius: 14, padding: '28px', display: 'flex', flexDirection: 'column', gap: 14, cursor: 'pointer', textDecoration: 'none', color: 'inherit' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 28 },
+
+  // Card
+  card: { background: '#ffffff', border: '1px solid #e8e5df', borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer', textDecoration: 'none', color: 'inherit' },
+  cardThumb: { position: 'relative', width: '100%', height: 200, overflow: 'hidden', background: '#f2f0ea', flexShrink: 0 },
+  cardThumbImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.4s ease' },
+  cardThumbPlaceholder: { position: 'relative', width: '100%', height: 200, background: 'linear-gradient(135deg, #f2f0ea 0%, #e8e5df 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  placeholderIcon: { fontSize: 32, color: '#d4d0c8' },
+  thumbBadge: { position: 'absolute', top: 12, right: 12, fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 4, fontFamily: 'monospace' },
+
+  cardBody: { padding: '20px 24px 24px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 },
   cardTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   cardMeta: { display: 'flex', alignItems: 'center', gap: 10 },
   niche: { fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#8a8880', background: '#f2f0ea', padding: '3px 8px', borderRadius: 4 },
   date: { fontSize: 12, color: '#8a8880', fontFamily: 'monospace' },
   statusBadge: { fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 4, fontFamily: 'monospace' },
-  cardTitle: { fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 600, lineHeight: 1.3, letterSpacing: '-0.3px', color: '#1a1916' },
+  cardTitle: { fontFamily: "'Lora', serif", fontSize: 19, fontWeight: 600, lineHeight: 1.3, letterSpacing: '-0.3px', color: '#1a1916' },
   cardDesc: { fontSize: 14, color: '#8a8880', lineHeight: 1.65, flex: 1 },
-  cardFooter: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 14, borderTop: '1px solid #f2f0ea', marginTop: 4 },
+  cardFooter: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, borderTop: '1px solid #f2f0ea', marginTop: 4 },
   keyword: { fontSize: 12, color: '#8a8880', fontFamily: 'monospace' },
   readMore: { fontSize: 13, fontWeight: 500, color: '#1a1916' },
 

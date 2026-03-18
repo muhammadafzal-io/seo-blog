@@ -9,6 +9,8 @@ async function getArticle(id: string) {
     .select(`
       id, keyword, meta_title, meta_description,
       content, status, wp_url, updated_at, created_at,
+      featured_image_url,
+      image_prompt,
       clients ( name, niche, domain )
     `)
     .eq('id', id)
@@ -67,10 +69,25 @@ export default async function ArticlePage({ params }: { params: { id: string } }
         </div>
       </header>
 
+      {/* ── HERO IMAGE — full width at top ── */}
+      {article.featured_image_url && (
+        <div style={s.heroImage}>
+          <img
+            src={article.featured_image_url}
+            alt={article.meta_title || article.keyword}
+            style={s.heroImg}
+          />
+          {/* Dark gradient overlay so text is readable if added later */}
+          <div style={s.heroOverlay} />
+          {/* AI badge */}
+          <span style={s.aiBadge}>✦ AI Generated Image</span>
+        </div>
+      )}
+
       {/* ── ARTICLE ── */}
       <article style={s.article}>
 
-        {/* Meta info */}
+        {/* Meta info row */}
         <div style={s.metaRow}>
           {client?.niche && <span style={s.niche}>{client.niche}</span>}
           <span style={s.date}>{timeAgo(article.updated_at)}</span>
@@ -124,10 +141,18 @@ export default async function ArticlePage({ params }: { params: { id: string } }
 
 const s: Record<string, React.CSSProperties> = {
   page: { minHeight: '100vh', background: '#fafaf8' },
+
+  // Hero image — full width banner
+  heroImage: { position: 'relative', width: '100%', height: 480, overflow: 'hidden', background: '#1a1916' },
+  heroImg: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 0.92 },
+  heroOverlay: { position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 50%, rgba(26,25,22,0.4) 100%)' },
+  aiBadge: { position: 'absolute', bottom: 16, right: 16, fontSize: 11, color: 'rgba(255,255,255,0.75)', fontFamily: 'monospace', background: 'rgba(0,0,0,0.35)', padding: '4px 10px', borderRadius: 4 },
+
   header: { borderBottom: '1px solid #e8e5df', background: '#ffffff', position: 'sticky', top: 0, zIndex: 50 },
   headerInner: { maxWidth: 760, margin: '0 auto', padding: '0 32px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
   backLink: { fontSize: 14, color: '#8a8880', textDecoration: 'none', fontWeight: 500 },
   wpLink: { fontSize: 13, color: '#2563eb', textDecoration: 'none', fontFamily: 'monospace' },
+
   article: { maxWidth: 760, margin: '0 auto', padding: '56px 32px 80px' },
   metaRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 },
   niche: { fontSize: 11, fontWeight: 600, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#8a8880', background: '#f2f0ea', padding: '3px 8px', borderRadius: 4 },
