@@ -38,6 +38,7 @@ export default function RootLayout({
         */}
 
         {/* NEW GOOGLE ANALYTICS */}
+        {/* NEW GOOGLE ANALYTICS */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-BHVYL1PF8C"
           strategy="afterInteractive"
@@ -45,12 +46,14 @@ export default function RootLayout({
 
         <Script id="google-analytics" strategy="afterInteractive">
           {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-            gtag('config', 'G-BHVYL1PF8C');
-          `}
+    gtag('config', 'G-BHVYL1PF8C', {
+      'debug_mode': true
+    });
+  `}
         </Script>
       </head>
 
