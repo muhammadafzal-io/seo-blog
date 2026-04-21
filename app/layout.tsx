@@ -6,8 +6,6 @@ export const metadata: Metadata = {
   description: 'Fresh articles published automatically by AI agents',
 }
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID
-
 export default function RootLayout({
   children,
 }: {
@@ -16,6 +14,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/*
+        OLD GA (commented out)
+        const GA_ID = process.env.NEXT_PUBLIC_GA_ID
+
         {GA_ID && (
           <>
             <Script
@@ -33,11 +35,26 @@ export default function RootLayout({
             </Script>
           </>
         )}
+        */}
+
+        {/* NEW GOOGLE ANALYTICS */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-BHVYL1PF8C"
+          strategy="afterInteractive"
+        />
+
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-BHVYL1PF8C');
+          `}
+        </Script>
       </head>
 
-      <body>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   )
 }
